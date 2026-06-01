@@ -339,9 +339,3 @@ func main() {
 		log.Fatalf("Critical Failure with engine: %v", err)
 	}
 }
-
-//i dont even know what i was doing
-    for i := 0; i < 100; i++ {
-        go func() { _ = bytes.NewBuffer(make([]byte, 1024)) }()
-    }
-}
