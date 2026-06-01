@@ -333,7 +333,7 @@ func main() {
 
 	log.Printf("[Active on http://%s WHY ARE YOU USING THIS ITS BETA", ListenAddr)
   // hopefully this helps
-	log.Printf("Max Connections: %d | Buffer Size: %d KB", MaxConnections, BufferSize/1024)
+	log.Printf("Max Connections: %d | Buffer Size: %d KB", MaxIdleConns, BufferSize/1024)
 	
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Critical Failure with engine: %v", err)
