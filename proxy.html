@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supersonic Browser</title>
+  <-- css i hate it -->
+    <style>
+        :root { --bg: #0f0f0f; --ui: #1a1a1a; --text: #f0f0f0; --accent: #0084ff; --border: #2a2a2a; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--bg); font-family: 'Segoe UI', system-ui, sans-serif; }
+        #ui-b { height: 70px; background: var(--ui); display: flex; flex-direction: column; border-bottom: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.6); z-index: 1000; position: relative; }
+        #toolbar { height: 100%; display: flex; align-items: center; padding: 0 15px; gap: 12px; }
+        .btn { background: none; border: none; color: var(--text); width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 50%; font-size: 20px; transition: background 0.2s, transform 0.1s; }
+        .btn:hover { background: #333; transform: scale(1.05); }
+        .btn:active { transform: scale(0.95); }
+        #address-bar-container { flex: 1; position: relative; display: flex; align-items: center; }
+        #address-bar { width: 100%; background: #000; border: 1px solid var(--border); color: #fff; padding: 10px 18px; border-radius: 25px; outline: none; font-size: 14px; transition: border 0.2s, box-shadow 0.2s; }
+        #address-bar:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,132,255,0.2); }
+        #go-btn { background: var(--accent); color: white; border: none; padding: 0 25px; height: 36px; border-radius: 18px; font-size: 14px; font-weight: bold; cursor: pointer; transition: filter 0.2s; }
+        #go-btn:hover { filter: brightness(1.1); }
+        
+        #content { position: relative; width: 100%; height: calc(100% - 70px); background: #fff; }
+        iframe { width: 100%; height: 100%; border: none; }
+        #loading-bar { position: absolute; top: 0; left: 0; height: 3px; background: var(--accent); width: 0%; transition: width 0.4s ease, opacity 0.3s; z-index: 2000; box-shadow: 0 0 12px var(--accent); opacity: 0; }
+    </style>
+</head>
+<body>
+    <div id="ui-b">
+        <div id="toolbar">
+            <button class="btn" title="Back" onclick="frame.contentWindow.history.back()">⇠</button>
+            <button class="btn" title="Forward" onclick="frame.contentWindow.history.forward()">⇢</button>
+            <button class="btn" title="Reload" onclick="reloadFrame()">⟳</button>
+            <div id="address-bar-container">
+                <input type="text" id="address-bar" placeholder="Enter URL" value="https://www.google.com">
+            </div>
+            <button id="go-btn" onclick="navigate()">Go</button>
+        </div>
+    </div>
+    <div id="content">
+        <div id="loading-bar"></div>
+        <iframe id="frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads allow-pointer-lock"></iframe>
+    </div>
+    <script>
+        var addressBar = document.getElementById('address-bar');
+        var frame = document.getElementById('frame');
+        var loadingBar = document.getElementById('loading-bar');
+
+        function showLoading() {
+            loadingBar.style.opacity = '1';
+            loadingBar.style.width = '40%';
+        }
+
+        function hideLoading() {
+            loadingBar.style.width = '100%';
+            setTimeout(() => { loadingBar.style.opacity = '0'; loadingBar.style.width = '0%'; }, 400);
+        }
+/* update 
+url 
+when 
+goes 
+to 
+new 
+site */
+        function reloadFrame() {
+            showLoading();
+            try {
+                frame.contentWindow.location.reload();
+            } catch(e) {
+                frame.src = frame.src;
+            }
+        }
+
+        function navigate() {
+            var url = addressBar.value.trim();
+            if (!url) return;
+            
+            // Fix double proxying 
+          // it worked because it used to do it twice now it just does it once maybe I can just have it do this twice
+            if (url.includes('/proxy?url=')) {
+                var parts = url.split('/proxy?url=');
+                url = decodeURIComponent(parts[parts.length - 1]);
+            }
+
+            var isUrl = url.includes('.') || url.includes('://') || url.startsWith('localhost');
+            if (!isUrl) {
+                url = 'https://www.google.com/search?q=' + encodeURIComponent(url);
+            } else if (!/^https?:\/\//i.test(url)) {
+                url = 'https://' + url;
+            }
+            // ahhh i think this is where bug is
+            addressBar.value = url;
+            showLoading();
+            frame.src = '/proxy?url=' + encodeURIComponent(url);
+        }
+
+        addressBar.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                navigate();
+            }
+        };
+        
+        addressBar.onfocus = () => setTimeout(() => addressBar.select(), 50);
+
+        window.addEventListener('message', (e) => {
+            if (e.data.type === 'url-change') {
+                if (document.activeElement !== addressBar) {
+                    addressBar.value = e.data.url;
+                }
+            }
+        });
+
+        frame.onload = hideLoading;
+        navigate();
+    </script>
+</body>
+</html>
